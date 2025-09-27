@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Proximity Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Twinkling Stars Animation */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00f5ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .message {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 0.5s ease;
+            position: relative;
+        }
+        
+        .message:last-child {
+            border-bottom: none;
+        }
+        
+        .message:hover .reactions {
+            opacity: 1;
+        }
+        
+        .reactions {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .reaction-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin: 0 2px;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .reaction-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .timestamp {
+            color: #666;
+            font-size: 0.7rem;
+            margin-bottom: 5px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        #input {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        #input:focus {
+            border-color: #00f5ff;
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
+        }
+        
+        #input::placeholder {
+            color: #888;
+        }
+        
+        .send-btn {
+            padding: 15px 25px;
+            background: linear-gradient(45deg, #00f5ff, #ff00ff);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 245, 255, 0.4);
+        }
+        
+        .watermark {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+            z-index: 20;
+            font-style: italic;
+        }
+        
+        #location-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,245,255,0.2);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(0,245,255,0.3);
+            z-index: 20;
+            transition: all 0.3s ease;
+        }
+        
+        #typing-indicator {
+            color: #888;
+            font-size: 0.8rem;
+            font-style: italic;
+            padding: 10px 0;
+            min-height: 30px;
+        }
+        
+        /* Scrollbar */
+        #messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        #messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    
+    <div id="location-status">
+        📍 Getting location...
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🌌 Proximity Chat</h1>
+            <div class="subtitle">Anonymous • Real-time • Local</div>
+        </div>
+        
+        <div id="messages"></div>
+        <div id="typing-indicator"></div>
+        
+        <div class="input-container">
+            <input id="input" placeholder="Type your message..." maxlength="500">
+            <button class="send-btn" onclick="send()">Send</button>
+        </div>
+    </div>
+    
+    <div class="watermark">🔒 Privacy is your right</div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Create twinkling stars
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            const numberOfStars = 100;
+            
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        createStars();
+        
+        // Notification sound
+        function playNotification() {
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBz2b3vHJdSMFJHfH8N2QQAoUXrTp66hVFApGn+DyvmihD');
+                audio.volume = 0.3;
+                audio.play();
+            } catch (e) {
+                // Silent fail if audio doesn't work
+            }
+        }
+        
+        const socket = io();
+        const messages = document.getElementById('messages');
+        const input = document.getElementById('input');
+        const locationStatus = document.getElementById('location-status');
+        const typingIndicator = document.getElementById('typing-indicator');
+        
+        let typing = false;
+        let typingUsers = new Set();
+        
+        // Get user location
+        if (navigator.geolocation) {
+            locationStatus.innerHTML = '📍 Requesting location...';
+            navigator.geolocation.getCurrentPosition((position) => {
+                const location = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                socket.emit('share location', location);
+                locationStatus.innerHTML = '📍 Location shared - Proximity chat active!';
+                locationStatus.style.background = 'rgba(0,255,0,0.2)';
+                locationStatus.style.borderColor = 'rgba(0,255,0,0.3)';
+            }, (error) => {
+                locationStatus.innerHTML = '❌ Location needed for proximity chat';
+                locationStatus.style.background = 'rgba(255,0,0,0.2)';
+                locationStatus.style.borderColor = 'rgba(255,0,0,0.3)';
+            });
+        }
+        
+        // Typing indicator
+        input.addEventListener('input', () => {
+            if (!typing) {
+                typing = true;
+                socket.emit('typing', true);
+                setTimeout(() => {
+                    typing = false;
+                    socket.emit('typing', false);
+                }, 1000);
+            }
+        });
+        
+        function send() {
+            if (input.value.trim()) {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        }
+        
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                send();
+            }
+        });
+        
+        function addReaction(messageId, reaction) {
+            socket.emit('react to message', { messageId, reaction });
+        }
+        
+        // Socket event listeners
+        socket.on('chat message', (data) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.setAttribute('data-message-id', data.id);
+            messageDiv.innerHTML = `
+                <div class="timestamp">${data.timestamp}</div>
+                <strong style="color: #00f5ff;">${data.username}</strong> 
+                <span style="color: #888; font-size: 0.8rem;">(${data.distance})</span>: 
+                ${data.message}
+                <div class="reactions">
+                    <button class="reaction-btn" onclick="addReaction('${data.id}', '👍')">👍</button>
+                    <button class="reaction-btn" onclick="addReaction('${data.id}', '❤️')">❤️</button>
+                    <button class="reaction-btn" onclick="addReaction('${data.id}', '😂')">😂</button>
+                    <button class="reaction-btn" onclick="addReaction('${data.id}', '🔥')">🔥</button>
+                </div>
+            `;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+            playNotification();
+        });
+        
+        socket.on('message reaction', (data) => {
+            const messageElement = document.querySelector(`[data-message-id="${data.messageId}"]`);
+            if (messageElement) {
+                let reactionSpan = messageElement.querySelector('.reaction-display');
+                if (!reactionSpan) {
+                    reactionSpan = document.createElement('span');
+                    reactionSpan.className = 'reaction-display';
+                    reactionSpan.style.marginLeft = '10px';
+                    messageElement.appendChild(reactionSpan);
+                }
+                reactionSpan.innerHTML += ` ${data.reaction}`;
+            }
+        });
+        
+        socket.on('proximity status', (data) => {
+            locationStatus.innerHTML = `📍 ${data.nearbyUsers} users within ${data.radius}`;
+        });
+        
+        socket.on('user typing', (data) => {
+            if (data.typing) {
+                typingUsers.add(data.username);
+            } else {
+                typingUsers.delete(data.username);
+            }
+            
+            if (typingUsers.size > 0) {
+                const users = Array.from(typingUsers);
+                typingIndicator.innerHTML = `${users.join(', ')} ${users.length === 1 ? 'is' : 'are'} typing...`;
+            } else {
+                typingIndicator.innerHTML = '';
+            }
+        });
+    </script>
+</body>
+</html>
